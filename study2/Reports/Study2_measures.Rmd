@@ -18,6 +18,7 @@ Measures in study 2 were computed for 3,103 learner texts produced by 1,785 lear
 
 ```{r pressure, echo=FALSE, results='asis'}
 cnavt_L1 <- cnavt_data
+cnavt_L1$cefr <- as.character(cnavt_L1$cefr)
 cnavt_L1$Moedertaal[cnavt_L1$Moedertaal!="Frans" & cnavt_L1$Moedertaal!="Duits" & cnavt_L1$Moedertaal!="Nederlands"] <- "Other"
 knitr::kable(table(cnavt_L1$cefr[!is.na(cnavt_L1$Geslaagd)],cnavt_L1$Moedertaal[!is.na(cnavt_L1$Geslaagd)]), caption = "CNaVT learners by CEFR level & L1")
 ```
@@ -42,5 +43,247 @@ The plot below shows TTR plotted against DP for dobj dependencies for task 2. Th
 ggplot(cnavt_L1, aes(x = TTR_dobj_A2, y = DP_dobj_A2)) + geom_point()
 ```
 
+Below are figures plotting TTR of each dependency type against the CEFR level of the learner
+
+```{r, echo=FALSE}
+all_TTR <- data.frame(c(cnavt_L1$TTR_dobj_A2,cnavt_L1$TTR_amod_A2,cnavt_L1$TTR_advmod_A2),c(rep("dobj",nrow(cnavt_L1)),rep("amod",nrow(cnavt_L1)),rep("advmod",nrow(cnavt_L1))),c(rep(cnavt_L1$cefr,3)))
+colnames(all_TTR) <- c("TTR","dep","CEFR")
+ggplot(na.omit(all_TTR), aes(x = CEFR, y = TTR)) + geom_point() + geom_boxplot(aes(fill = dep), position = position_dodge(0.9), notch = FALSE)
+```
+
+And for only the passing exams:
+
+```{r, echo=FALSE}
+cnavt_Geslaagd <- cnavt_L1[cnavt_L1$Geslaagd==1 & !is.na(cnavt_L1$Geslaagd),]
+all_TTR_Geslaagd <- data.frame(c(cnavt_Geslaagd$TTR_dobj_A2,cnavt_Geslaagd$TTR_amod_A2,cnavt_Geslaagd$TTR_advmod_A2),c(rep("dobj",nrow(cnavt_Geslaagd)),rep("amod",nrow(cnavt_Geslaagd)),rep("advmod",nrow(cnavt_Geslaagd))),c(rep(cnavt_Geslaagd$cefr,3)))
+colnames(all_TTR_Geslaagd) <- c("TTR","dep","CEFR")
+ggplot(na.omit(all_TTR_Geslaagd), aes(x = CEFR, y = TTR)) + geom_point() + geom_boxplot(aes(fill = dep), position = position_dodge(0.9), notch = FALSE)
+```
+
+Below are figures plotting TTR of each dependency type against the overall numeric score for each separate exam level
+
+B1
+
+```{r, echo=FALSE}
+all_TTR_num <- data.frame(c(cnavt_L1$TTR_dobj_A2,cnavt_L1$TTR_amod_A2,cnavt_L1$TTR_advmod_A2),c(rep("dobj",nrow(cnavt_L1)),rep("amod",nrow(cnavt_L1)),rep("advmod",nrow(cnavt_L1))),c(rep(cnavt_L1$cefr,3)),c(rep(cnavt_L1$MeasureConvtd,3)))
+colnames(all_TTR_num) <- c("TTR","dep","CEFR","MeasureConvtd")
+ggplot(na.omit(all_TTR_num[all_TTR_num$CEFR=="B1",]), aes(x = MeasureConvtd, y = TTR)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+B2
+
+```{r, echo=FALSE}
+ggplot(na.omit(all_TTR_num[all_TTR_num$CEFR=="B2",]), aes(x = MeasureConvtd, y = TTR)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+C1
+
+```{r, echo=FALSE}
+ggplot(na.omit(all_TTR_num[all_TTR_num$CEFR=="C1",]), aes(x = MeasureConvtd, y = TTR)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
 ### Sophistication
 
+For dependency-based sophistication measures, we look at PMI-based measures (mean PMI per text, PMI IQR, and collocational-band based PMI measures)
+
+Below are figures plotting mean PMI against CEFR level for each dependency type
+
+```{r, echo=FALSE}
+all_PMI <- data.frame(c(cnavt_L1$dobj_mi_mean_A2_nobt,cnavt_L1$amod_mi_mean_A2_nobt,cnavt_L1$advmod_mi_mean_A2_nobt),c(rep("dobj",nrow(cnavt_L1)),rep("amod",nrow(cnavt_L1)),rep("advmod",nrow(cnavt_L1))),c(rep(cnavt_L1$cefr,3)))
+colnames(all_PMI) <- c("PMI_mean","dep","CEFR")
+ggplot(na.omit(all_PMI), aes(x = CEFR, y = PMI_mean)) + geom_boxplot(aes(fill = dep), position = position_dodge(0.9), notch = FALSE)
+```
+
+And for only the passing exams:
+
+```{r, echo=FALSE}
+all_PMI_Geslaagd <- data.frame(c(cnavt_Geslaagd$dobj_mi_mean_A2_nobt,cnavt_Geslaagd$amod_mi_mean_A2_nobt,cnavt_Geslaagd$advmod_mi_mean_A2_nobt),c(rep("dobj",nrow(cnavt_Geslaagd)),rep("amod",nrow(cnavt_Geslaagd)),rep("advmod",nrow(cnavt_Geslaagd))),c(rep(cnavt_Geslaagd$cefr,3)))
+colnames(all_PMI_Geslaagd) <- c("PMI_mean","dep","CEFR")
+ggplot(na.omit(all_PMI_Geslaagd), aes(x = CEFR, y = PMI_mean)) + geom_boxplot(aes(fill = dep), position = position_dodge(0.9), notch = FALSE)
+```
+
+Below are figures plotting mean PMI of each dependency type against the overall numeric score for each separate exam level
+
+B1
+
+```{r, echo=FALSE}
+all_PMI_num <- data.frame(c(cnavt_L1$dobj_mi_mean_A2_nobt,cnavt_L1$amod_mi_mean_A2_nobt,cnavt_L1$advmod_mi_mean_A2_nobt),c(rep("dobj",nrow(cnavt_L1)),rep("amod",nrow(cnavt_L1)),rep("advmod",nrow(cnavt_L1))),c(rep(cnavt_L1$cefr,3)),c(rep(cnavt_L1$MeasureConvtd,3)))
+colnames(all_PMI_num) <- c("PMI_mean","dep","CEFR","MeasureConvtd")
+ggplot(na.omit(all_PMI_num[all_PMI_num$CEFR=="B1",]), aes(x = MeasureConvtd, y = PMI_mean)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+B2
+
+```{r, echo=FALSE}
+all_PMI_num <- data.frame(c(cnavt_L1$dobj_mi_mean_A2_nobt,cnavt_L1$amod_mi_mean_A2_nobt,cnavt_L1$advmod_mi_mean_A2_nobt),c(rep("dobj",nrow(cnavt_L1)),rep("amod",nrow(cnavt_L1)),rep("advmod",nrow(cnavt_L1))),c(rep(cnavt_L1$cefr,3)),c(rep(cnavt_L1$MeasureConvtd,3)))
+colnames(all_PMI_num) <- c("PMI_mean","dep","CEFR","MeasureConvtd")
+ggplot(na.omit(all_PMI_num[all_PMI_num$CEFR=="B2",]), aes(x = MeasureConvtd, y = PMI_mean)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+C1
+
+```{r, echo=FALSE}
+all_PMI_num <- data.frame(c(cnavt_L1$dobj_mi_mean_A2_nobt,cnavt_L1$amod_mi_mean_A2_nobt,cnavt_L1$advmod_mi_mean_A2_nobt),c(rep("dobj",nrow(cnavt_L1)),rep("amod",nrow(cnavt_L1)),rep("advmod",nrow(cnavt_L1))),c(rep(cnavt_L1$cefr,3)),c(rep(cnavt_L1$MeasureConvtd,3)))
+colnames(all_PMI_num) <- c("PMI_mean","dep","CEFR","MeasureConvtd")
+ggplot(na.omit(all_PMI_num[all_PMI_num$CEFR=="C1",]), aes(x = MeasureConvtd, y = PMI_mean)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+Below are figures plotting PMI IQR against CEFR level for each dependency type
+
+```{r, echo=FALSE}
+all_PMIIQR_num <- data.frame(c(cnavt_L1$mi_iqr_dobj_A2,cnavt_L1$mi_iqr_amod_A2,cnavt_L1$mi_iqr_advmod_A2),c(rep("dobj",nrow(cnavt_L1)),rep("amod",nrow(cnavt_L1)),rep("advmod",nrow(cnavt_L1))),c(rep(cnavt_L1$cefr,3)),c(rep(cnavt_L1$MeasureConvtd,3)))
+colnames(all_PMIIQR_num) <- c("PMI_IQR","dep","CEFR","MeasureConvtd")
+ggplot(na.omit(all_PMIIQR_num), aes(x = CEFR, y = PMI_IQR)) + geom_boxplot(aes(fill = dep), position = position_dodge(0.9), notch = FALSE)
+```
+
+And for only passing exams:
+
+```{r, echo=FALSE}
+all_PMIIQR_num_Geslaagd <- data.frame(c(cnavt_Geslaagd$mi_iqr_dobj_A2,cnavt_Geslaagd$mi_iqr_amod_A2,cnavt_Geslaagd$mi_iqr_advmod_A2),c(rep("dobj",nrow(cnavt_Geslaagd)),rep("amod",nrow(cnavt_Geslaagd)),rep("advmod",nrow(cnavt_Geslaagd))),c(rep(cnavt_Geslaagd$cefr,3)),c(rep(cnavt_Geslaagd$MeasureConvtd,3)))
+colnames(all_PMIIQR_num_Geslaagd) <- c("PMI_IQR","dep","CEFR","MeasureConvtd")
+ggplot(na.omit(all_PMIIQR_num_Geslaagd), aes(x = CEFR, y = PMI_IQR)) + geom_boxplot(aes(fill = dep), position = position_dodge(0.9), notch = FALSE)
+```
+
+Below are figures plotting PMI IQR of each dependency type against the overall numeric score for each separate exam level
+
+B1
+
+```{r, echo=FALSE}
+ggplot(na.omit(all_PMIIQR_num[all_PMIIQR_num$CEFR=="B1",]), aes(x = MeasureConvtd, y = PMI_IQR)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+B2
+
+```{r, echo=FALSE}
+ggplot(na.omit(all_PMIIQR_num[all_PMIIQR_num$CEFR=="B2",]), aes(x = MeasureConvtd, y = PMI_IQR)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+C1
+
+```{r, echo=FALSE}
+ggplot(na.omit(all_PMIIQR_num[all_PMIIQR_num$CEFR=="C1",]), aes(x = MeasureConvtd, y = PMI_IQR)) + geom_point(aes(color=dep)) + geom_smooth(aes(fill = dep),method = lm)
+```
+
+## Verb-argument structure measures
+
+### Diversity
+
+For verb-argument structure diversity measures, we consider TTR (to not overcorrect for text length)
+
+Below are figures plotting TTR of verb-argument structures against the CEFR level of the learner
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[!is.na(cnavt_L1$TTR_VAC_A2),], aes(x = cefr, y = TTR_VAC_A2)) + geom_point() + geom_boxplot(position = position_dodge(0.9), notch = FALSE)
+```
+
+And for only passing exams:
+
+```{r, echo=FALSE}
+ggplot(cnavt_Geslaagd[!is.na(cnavt_Geslaagd$TTR_VAC_A2),], aes(x = cefr, y = TTR_VAC_A2)) + geom_point() + geom_boxplot(position = position_dodge(0.9), notch = FALSE)
+```
+
+Below are figures plotting TTR of verb-argument structures against the overall numeric score for each separate exam level
+
+B1
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="B1" & !is.na(cnavt_L1$TTR_VAC_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = TTR_VAC_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+B2
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="B2" & !is.na(cnavt_L1$TTR_VAC_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = TTR_VAC_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+C1
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="C1" & !is.na(cnavt_L1$TTR_VAC_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = TTR_VAC_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+### Sophistication
+
+For verb-argument structure sophistication measures, we consider PMI mean per text and Entropy mean per text
+
+Below are figures plotting PMI mean of verb-argument structures against the CEFR level of the learner
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[!is.na(cnavt_L1$VAC_MI_NOBT_A2),], aes(x = cefr, y = VAC_MI_NOBT_A2)) + geom_point() + geom_boxplot(position = position_dodge(0.9), notch = FALSE)
+```
+
+And for only passing exams:
+
+```{r, echo=FALSE}
+ggplot(cnavt_Geslaagd[!is.na(cnavt_Geslaagd$VAC_MI_NOBT_A2),], aes(x = cefr, y = VAC_MI_NOBT_A2)) + geom_point() + geom_boxplot(position = position_dodge(0.9), notch = FALSE)
+```
+
+Below are figures plotting PMI mean of verb-argument structures against the overall numeric score for each separate exam level
+
+B1
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="B1" & !is.na(cnavt_L1$VAC_MI_NOBT_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = VAC_MI_NOBT_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+B2
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="B2" & !is.na(cnavt_L1$VAC_MI_NOBT_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = VAC_MI_NOBT_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+C1
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="C1" & !is.na(cnavt_L1$VAC_MI_NOBT_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = VAC_MI_NOBT_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+Below are figures plotting Entropy mean of verb-argument structures against the CEFR level of the learner
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[!is.na(cnavt_L1$VAC_Entropy_A2),], aes(x = cefr, y = VAC_Entropy_A2)) + geom_point() + geom_boxplot(position = position_dodge(0.9), notch = FALSE)
+```
+
+And for only passing exams:
+
+```{r, echo=FALSE}
+ggplot(cnavt_Geslaagd[!is.na(cnavt_Geslaagd$VAC_Entropy_A2),], aes(x = cefr, y = VAC_Entropy_A2)) + geom_point() + geom_boxplot(position = position_dodge(0.9), notch = FALSE)
+```
+
+Below are figures plotting Entropy mean of verb-argument structures against the overall numeric score for each separate exam level
+
+B1
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="B1" & !is.na(cnavt_L1$VAC_Entropy_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = VAC_Entropy_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+B2
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="B2" & !is.na(cnavt_L1$VAC_Entropy_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = VAC_Entropy_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+C1
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1[cnavt_L1$cefr=="C1" & !is.na(cnavt_L1$VAC_Entropy_A2) & !is.na(cnavt_L1$MeasureConvtd),], aes(x = MeasureConvtd, y = VAC_Entropy_A2)) + geom_point() + geom_smooth(method = lm)
+```
+
+# Overview trends
+
+TTR as a diversity measure for dependency-based phraseological units does not appear to exhibit consistent linear trends across CEFR levels over all CNaVT exams or across increasing numerical exam scores for each individual CEFR exam level.
+
+TTR of verb-argument structures also generally demonstrates non-linear trends across all levels of the CNaVT data.
+
+While sophistication measures for dependency-based units (PMI mean & IQR) do not exhibit linear development across CEFR levels in general, there is some linear development across increasing numerical exam scores at the individual CNaVT exam levels. Specifically, PMI mean of dobjs increases linearly for the B1 exam, and PMI mean of dobjs & amods increases linearly for the B2 & C1 exams. As for PMI IQR, there is linear development across numerical exam scores for all three dependency types at the B1 level, for amods at the B2 level, and for no dependency types at C1.
+
+While sophistication of verb-argument structures measured in PMI means increases linearly (very slightly) across CEFR levels for all exams, in addition to linearly across increasing numerical exam scores for all three CNaVT exam levels, sophistication measured in Enntropy means displays a non-linear trend across CEFR levels overall, a slightly negative linear trend across numerical exam scores at B2 and a slightly positive linear trend across numerical exam scores at C1.
+
+Linear predictors across CEFR levels: TTR advmod (positive trend), PMI mean advmod (negative trend), PMI mean verb-argument structure (positive trend)
+
+Linear predictors numerical exam score B1: TTR dobj, amod, & advmod (all negative trend), PMI mean dobj (positive trend), PMI IQR dobj, amod, & advmod (all positive trend), TTR verb-argument structures (negative trend), PMI mean verb-argument structure (positive trend)
+
+Linear predictors numerical exam score B2: TTR advmod (negative trend), PMI mean dobj & amod (positive trend), PMI IQR amod (positive trend), PMI mean verb-argument structure (positive trend), Entropy mean verb-argument structure (negative trend)
+
+Linear predictors numerical exam score C1: TTR advmod (positive trend), PMI mean dobj & amod (positive trend), PMI mean verb-argument structure (positive trend), Entropy mean verb-argument structure (positive trend)
