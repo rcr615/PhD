@@ -1,0 +1,46 @@
+---
+title: "Study2_measures"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load myData, include=FALSE}
+library(ggplot2)
+load("~/Documents/study2/R/cnavt_VACs.Rdata")
+```
+
+# CNaVT Data Overview
+
+Measures in study 2 were computed for 3,103 learner texts produced by 1,785 learners. Exam results are available for 1,474 learners. The distribution of learners for whom exam results have been collected is presented below across CEFR exam level (B1/B2/C1) and L1 backgrounds.
+
+```{r pressure, echo=FALSE, results='asis'}
+cnavt_L1 <- cnavt_data
+cnavt_L1$Moedertaal[cnavt_L1$Moedertaal!="Frans" & cnavt_L1$Moedertaal!="Duits" & cnavt_L1$Moedertaal!="Nederlands"] <- "Other"
+knitr::kable(table(cnavt_L1$cefr[!is.na(cnavt_L1$Geslaagd)],cnavt_L1$Moedertaal[!is.na(cnavt_L1$Geslaagd)]), caption = "CNaVT learners by CEFR level & L1")
+```
+
+And below is the distribution of learners who passed the exam.
+
+```{r echo=FALSE, results='asis'}
+knitr::kable(table(cnavt_L1$cefr[!is.na(cnavt_L1$Geslaagd) & cnavt_L1$Geslaagd==1],cnavt_L1$Moedertaal[!is.na(cnavt_L1$Geslaagd) & cnavt_L1$Geslaagd==1]), caption = "Passing CNaVT learners by CEFR level & L1")
+```
+
+# Complexity measures
+
+## Dependency-based measures
+
+### Diversity
+
+For dependency-based diversity measures (phraseological units = dobj, amod, & advmod), we consider TTR (to not overcorrect for text length) and DP (dispersion as a diversity measure)
+
+The plot below shows TTR plotted against DP for dobj dependencies for task 2. The measures are perfectly correlated so either can serve as a diversity measure in the study. The correlation with text length is low (.15) as text length does not vary greatly in the CNaVT dataset.
+
+```{r, echo=FALSE}
+ggplot(cnavt_L1, aes(x = TTR_dobj_A2, y = DP_dobj_A2)) + geom_point()
+```
+
+### Sophistication
+
