@@ -1,0 +1,117 @@
+---
+title: "Liege_corpus"
+output: github_document
+bibliography: "/Users/rachelrubin/Documents/Literature/PhDbib.bib"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load myData, include=FALSE}
+library(ggplot2)
+load("~/Documents/Liege_corpus/students_liege.Rdata")
+```
+
+The students_liege dataset contains metadata collected for the Liège corpus, including the number of texts collected from each student, the collection year of the texts, the score (/20) for each text, and learner metadata for the students who responded to the metadata survey.
+
+The corpus contains texts from 261 students, with an average of 2.9 texts per student (see below for specifics on number of texts collected per student). The majority of students contributed one or two texts, while at least 20 students contributed at least 5 texts.
+
+```{r, echo=FALSE}
+table(students$total_texts)
+```
+
+Visual overview of density/sparsity of texts in Liege corpus below (easier to view this plot separately as PNG so you can zoom in):
+
+```{r, echo=FALSE}
+students_texts <- students[,c(4:24)]
+students_texts[!is.na(students_texts)] <- 1
+students_texts[is.na(students_texts)] <- 0
+students_texts <- cbind(students[,1],students_texts)
+colnames(students_texts) <- c("ID",colnames(students_texts[-1]))
+students_texts_long <- reshape(students_texts, direction = "long", varying = list(names(students_texts[2:22])), v.names = "Value", idvar = "ID", timevar = "Opstel")
+students_texts_long$Value <- as.factor(students_texts_long$Value)
+students_texts_long$ID <- as.factor(students_texts_long$ID)
+students_texts_long$Opstel <- as.factor(students_texts_long$Opstel)
+data_spars <- ggplot(students_texts_long) + geom_tile(aes(x=ID,y=Opstel,fill=Value),color="#7f7f7f") + scale_fill_manual(values=c("white", "black")) + coord_equal() + labs(x=NULL, y=NULL) + theme_bw() + theme(panel.grid=element_blank()) + theme(panel.border=element_blank()) + theme(axis.text.x = element_text(angle = 90))
+data_spars
+```
+
+The plot indicates two separate cohorts, one that spans the texts from 2016/2017 - 2018/2019 and another from 2018/2019 - 2020/2021
+
+Determining the texts with the most overlap across learners in the first cohort:
+
+```{r, echo=TRUE}
+nrow(students_texts[students_texts$BAC1_17_18_opstel_1==1 & students_texts$BAC1_17_18_opstel_2==1 & students_texts$BAC1_17_18_opstel_4==1 & students_texts$BAC2_18_19_opstel_1==1 & students_texts$BAC2_18_19_opstel_2==1 & students_texts$BAC3_19_20_opstel_1==1 & students_texts$BAC3_19_20_opstel_2==1,])
+
+nrow(students_texts[students_texts$BAC1_17_18_opstel_1==1 & students_texts$BAC1_17_18_opstel_2==1 & students_texts$BAC1_17_18_opstel_4==1 & students_texts$BAC2_18_19_opstel_1==1 & students_texts$BAC3_19_20_opstel_1==1 & students_texts$BAC3_19_20_opstel_2==1,])
+
+nrow(students_texts[students_texts$BAC1_17_18_opstel_1==1 & students_texts$BAC1_17_18_opstel_2==1 & students_texts$BAC1_17_18_opstel_4==1 & students_texts$BAC2_18_19_opstel_1==1 & students_texts$BAC3_19_20_opstel_1==1,])
+
+nrow(students_texts[students_texts$BAC1_17_18_opstel_1==1 & students_texts$BAC1_17_18_opstel_2==1 & students_texts$BAC1_17_18_opstel_4==1 & students_texts$BAC2_18_19_opstel_1==1,])
+
+nrow(students_texts[students_texts$BAC1_17_18_opstel_1==1 & students_texts$BAC1_17_18_opstel_2==1 & students_texts$BAC1_17_18_opstel_4==1,])
+```
+
+We have collected BAC1_17_18_opstel_1, BAC1_17_18_opstel_2, & BAC1_17_18_opstel_4 from 48 students. These texts are all from the first year of the bachelor program in the 2017-2018 academic year. We know the first of the three assignments was submitted on 20/10/2017, no date provided for the second two. All three texts have scores out of 20. Of the 48 students, 36 have provided metadata.
+
+Determining the texts with the most overlap across learners in the second cohort:
+
+```{r, echo=TRUE}
+nrow(students_texts[students_texts$BAC1_19_20_opstel_1==1 & students_texts$BAC1_19_20_opstel_2==1 & students_texts$BAC1_19_20_opstel_3==1 & students_texts$BAC1_19_20_opstel_4==1 & students_texts$BAC1_19_20_opstel_5==1 & students_texts$BAC1_19_20_opstel_6==1,])
+
+nrow(students_texts[students_texts$BAC1_19_20_opstel_1==1 & students_texts$BAC1_19_20_opstel_2==1 & students_texts$BAC1_19_20_opstel_3==1 & students_texts$BAC1_19_20_opstel_4==1 & students_texts$BAC1_19_20_opstel_6==1,])
+
+nrow(students_texts[students_texts$BAC1_19_20_opstel_1==1 & students_texts$BAC1_19_20_opstel_2==1 & students_texts$BAC1_19_20_opstel_4==1 & students_texts$BAC1_19_20_opstel_6==1,])
+
+nrow(students_texts[students_texts$BAC1_19_20_opstel_2==1 & students_texts$BAC1_19_20_opstel_4==1 & students_texts$BAC1_19_20_opstel_6==1,])
+
+nrow(students_texts[students_texts$BAC1_19_20_opstel_1==1 & students_texts$BAC1_19_20_opstel_4==1 & students_texts$BAC1_19_20_opstel_6==1,])
+```
+
+We have collected BAC1_19_20_opstel_1, BAC1_19_20_opstel_4, & BAC1_19_20_opstel_6 from 31 students. These texts are all from the first year of the bachelor program in the 2019-2020 academic year. We know the first text was submitted on 4/10/2019 (no scores), the second text on 10/04/2020 (scores out of 20), and the third text on 06/2020 (no scores). Most of the second cohort of students have not provided metadata as we collected these texts after the distribution of the metadata survey in 2018/2019.
+
+Collection dates and grades: (all grades/scores are out of 20)
+
+MA1_18_19_opstel_1: \
+&nbsp;&nbsp;&nbsp;    Date: no; Grades: yes \
+BAC1_16_17_opstel_1: \
+ &nbsp;&nbsp;&nbsp;   Date: 30/09/2016 Grades: yes\
+BAC3_18_19_opstel_1: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC3_18_19_opstel_2: \
+&nbsp;&nbsp;&nbsp;    Date: 05/2019; Grades: no\
+BAC1_17_18_opstel_1: \
+ &nbsp;&nbsp;&nbsp;   Date: 20/10/2017; Grades: yes\
+BAC1_17_18_opstel_2: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC1_17_18_opstel_4: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC2_18_19_opstel_1: \
+ &nbsp;&nbsp;&nbsp;   Date: 10/2018; Grades: no\
+BAC2_18_19_opstel_2: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: no\
+BAC3_19_20_opstel_1: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC3_19_20_opstel_2: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC1_18_19_opstel_1: \
+ &nbsp;&nbsp;&nbsp;   Date: 28/09/2018; Grades: yes\
+BAC3_20_21_opstel_1: \
+  &nbsp;&nbsp;&nbsp;  Date: 12/2020; Grades: no\
+BAC1_19_20_opstel_1: \
+  &nbsp;&nbsp;&nbsp;  Date: 4/10/2019; Grades: no\
+BAC1_19_20_opstel_2: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC1_19_20_opstel_3: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC1_19_20_opstel_4: \
+ &nbsp;&nbsp;&nbsp;   Date: 10/04/2020; Grades: yes\
+BAC1_19_20_opstel_5: \
+ &nbsp;&nbsp;&nbsp;   Date: no; Grades: yes\
+BAC1_19_20_opstel_6: \
+ &nbsp;&nbsp;&nbsp;   Date: 06/2020; Grades: no\
+BAC1_19_20_opstel_7: \
+ &nbsp;&nbsp;&nbsp;   Date: 08/2020; Grades: no\
+BAC2_20_21_opstel_1: \
+ &nbsp;&nbsp;&nbsp;   Date: 27/10/2020; Grades: yes\
