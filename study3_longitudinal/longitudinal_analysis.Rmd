@@ -1,0 +1,887 @@
+---
+title: "Longitudinal analysis"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r load myData, include=FALSE}
+library(lme4)
+library(ggplot2)
+library(MuMIn)
+library(sjPlot)
+load("~/Documents/study3/students_liege.Rdata")
+liege_measures <- read.csv("/Users/rachelrubin/Documents/study3/Data/liege_data.csv")
+liege_measures$score <- as.numeric(as.character(liege_measures$score))
+liege_measures$time_months_log2 <- log2(liege_measures$time_months+.5)
+liege_48 <- liege_measures[liege_measures$studentid %in% students$ID[!is.na(students$BAC1_17_18_opstel_1) & !is.na(students$BAC1_17_18_opstel_2) & !is.na(students$BAC1_17_18_opstel_4)],]
+```
+
+## Statistical analysis
+
+### Modeling complexity measures as a function of time
+
+For each measure, we report a linear mixed effects regression with time (linear & quadratic) as the sole predictor and random intercepts for learners. Each measure was first modeled with a linear term for time, and this model is compared with the null model to determine if the model significantly improves upon the null model. Afterwards, a quadratic term for time is added to the model, which is then compared with the previous model to determine whether the addition of a nonlinear term for time improves upon the model.
+
+The plot for each complexity measure compares the modeled effects with the observed values. We also look at marginal and conditional R-squared values for each measure to compare fixed vs. random effects.
+
+#### Mean MI Dobj
+
+```{r, echo=FALSE}
+#null model
+meanMIdobj_MM_null <- lmer(formula = meanMIdobj ~ (1|studentid), data = liege_48) #singular
+#linear time
+meanMIdobj_MM  <- lmer(formula = meanMIdobj ~ (1|studentid) + time_months, data = liege_48) #singular
+R2 <- r.squaredGLMM(meanMIdobj_MM)
+#time2
+meanMIdobj_MM_poly  <- lmer(formula = meanMIdobj ~ (1|studentid) + poly(time_months,2), data = liege_48) #singular
+R2 <- r.squaredGLMM(meanMIdobj_MM_poly)
+```
+
+```{r, echo=TRUE}
+anova(meanMIdobj_MM_null,meanMIdobj_MM,meanMIdobj_MM_poly) #time
+R2
+```
+The model fit is singular (this is the only measure for which this is the case).  
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, and the quadratic term is a significant improvement on the linear term.  
+R2 for the best-fitting model is .099 marginal & .099 conditional (the fixed effects do not account for any variance beyond the random effects)
+
+```{r, echo=FALSE}
+intercepts <- coef(meanMIdobj_MM)$studentid[,1]
+slopes <- coef(meanMIdobj_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIdobj)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(meanMIdobj_MM), type="response", grid=TRUE)
+intercept <- summary(meanMIdobj_MM)$coef[1,1]
+slope <- summary(meanMIdobj_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(meanMIdobj_MM)[4,1])+confint(meanMIdobj_MM)[3,1],(unique(liege_48$time_months)*confint(meanMIdobj_MM)[4,2])+confint(meanMIdobj_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIdobj),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIdobj),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIdobj),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#meanMIdobj_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIdobj)) + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIdobj), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(meanMIdobj_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(meanMIdobj_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIdobj),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIdobj),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIdobj), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for meanMIdobj (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### RTTR dobj
+
+```{r, echo=FALSE}
+#null model
+RTTR_dobj_MM_null <- lmer(formula = RTTR_dobj ~ (1|studentid), data = liege_48)
+#linear time
+RTTR_dobj_MM <- lmer(formula = RTTR_dobj ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(RTTR_dobj_MM)
+#time 2
+RTTR_dobj_MM_poly <- lmer(formula = RTTR_dobj ~ (1|studentid) + poly(time_months,2), data = liege_48)
+R2 <- r.squaredGLMM(RTTR_dobj_MM_poly)
+```
+```{r, echo=TRUE}
+anova(RTTR_dobj_MM_null,RTTR_dobj_MM,RTTR_dobj_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, and the quadratic term is a significant improvement on the linear term. 
+R2 for the best-fitting model is .046 marginal & .166 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(RTTR_dobj_MM)$studentid[,1]
+slopes <- coef(RTTR_dobj_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_dobj)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(RTTR_dobj_MM), type="response", grid=TRUE)
+intercept <- summary(RTTR_dobj_MM)$coef[1,1]
+slope <- summary(RTTR_dobj_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(RTTR_dobj_MM)[4,1])+confint(RTTR_dobj_MM)[3,1],(unique(liege_48$time_months)*confint(RTTR_dobj_MM)[4,2])+confint(RTTR_dobj_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_dobj),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_dobj),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_dobj),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#RTTR_dobj_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_dobj)) + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_dobj), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(RTTR_dobj_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(RTTR_dobj_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_dobj),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_dobj),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_dobj), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for RTTR_dobj (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Mean MI amod
+
+```{r, echo=FALSE}
+#null model
+meanMIamod_MM_null <- lmer(formula = meanMIamod ~ (1|studentid), data = liege_48)
+#linear time
+meanMIamod_MM <- lmer(formula = meanMIamod ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(meanMIamod_MM)
+#time 2
+meanMIamod_MM_poly <- lmer(formula = meanMIamod ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(meanMIamod_MM_poly)
+```
+```{r, echo=TRUE}
+anova(meanMIamod_MM_null,meanMIamod_MM,meanMIamod_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.  
+R2 for the best-fitting model is .029 marginal & .144 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(meanMIamod_MM)$studentid[,1]
+slopes <- coef(meanMIamod_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIamod)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(meanMIamod_MM), type="response", grid=TRUE)
+intercept <- summary(meanMIamod_MM)$coef[1,1]
+slope <- summary(meanMIamod_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(meanMIamod_MM)[4,1])+confint(meanMIamod_MM)[3,1],(unique(liege_48$time_months)*confint(meanMIamod_MM)[4,2])+confint(meanMIamod_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIamod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIamod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIamod),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#meanMIamod_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIamod)) + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIamod), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(meanMIamod_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(meanMIamod_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIamod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIamod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIamod), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for meanMIamod (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### RTTR amod
+
+```{r, echo=FALSE}
+#null model
+RTTR_amod_MM_null <- lmer(formula = RTTR_amod ~ (1|studentid), data = liege_48)
+#linear time
+RTTR_amod_MM <- lmer(formula = RTTR_amod ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(RTTR_amod_MM)
+#time 2
+RTTR_amod_MM_poly <- lmer(formula = RTTR_amod ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(RTTR_amod_MM_poly)
+```
+```{r, echo=TRUE}
+anova(RTTR_amod_MM_null,RTTR_amod_MM,RTTR_amod_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.  
+R2 for the best-fitting model is .043 marginal & .370 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(RTTR_amod_MM)$studentid[,1]
+slopes <- coef(RTTR_amod_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_amod)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(RTTR_amod_MM), type="response", grid=TRUE)
+intercept <- summary(RTTR_amod_MM)$coef[1,1]
+slope <- summary(RTTR_amod_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(RTTR_amod_MM)[4,1])+confint(RTTR_amod_MM)[3,1],(unique(liege_48$time_months)*confint(RTTR_amod_MM)[4,2])+confint(RTTR_amod_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_amod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_amod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_amod),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#RTTR_amod_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_amod)) + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_amod), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(RTTR_amod_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(RTTR_amod_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_amod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_amod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_amod), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for RTTR_amod (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Mean MI advmod
+
+```{r, echo=FALSE}
+#null model
+meanMIadvmod_MM_null <- lmer(formula = meanMIadvmod ~ (1|studentid), data = liege_48)
+#linear time
+meanMIadvmod_MM <- lmer(formula = meanMIadvmod ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(meanMIadvmod_MM)
+#time 2
+meanMIadvmod_MM_poly <- lmer(formula = meanMIadvmod ~ (1|studentid) + poly(time_months,2), data = liege_48)
+R2 <- r.squaredGLMM(meanMIadvmod_MM_poly)
+```
+```{r, echo=TRUE}
+anova(meanMIadvmod_MM_null,meanMIadvmod_MM,meanMIadvmod_MM_poly) #time
+anova(meanMIadvmod_MM_null,meanMIadvmod_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is not a significant improvement upon the null model, but the quadratic term is a significant improvement on the linear term. An anova comparing the null model with the model with the quadratic term shows a significant improvement upon the null model.
+R2 for the best-fitting model is .033 marginal & .091 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(meanMIadvmod_MM)$studentid[,1]
+slopes <- coef(meanMIadvmod_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIadvmod)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(meanMIadvmod_MM), type="response", grid=TRUE)
+intercept <- summary(meanMIadvmod_MM)$coef[1,1]
+slope <- summary(meanMIadvmod_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(meanMIadvmod_MM)[4,1])+confint(meanMIadvmod_MM)[3,1],(unique(liege_48$time_months)*confint(meanMIadvmod_MM)[4,2])+confint(meanMIadvmod_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIadvmod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIadvmod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIadvmod),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#meanMIadvmod_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIadvmod)) + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIadvmod), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(meanMIadvmod_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(meanMIadvmod_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIadvmod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIadvmod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIadvmod), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for meanMIadvmod (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### RTTR advmod
+
+```{r, echo=FALSE}
+#null model
+RTTR_advmod_MM_null <- lmer(formula = RTTR_advmod ~ (1|studentid), data = liege_48)
+#linear time
+RTTR_advmod_MM <- lmer(formula = RTTR_advmod ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(RTTR_advmod_MM)
+#time 2
+RTTR_advmod_MM_poly <- lmer(formula = RTTR_advmod ~ (1|studentid) + poly(time_months,2), data = liege_48)
+R2 <- r.squaredGLMM(RTTR_advmod_MM_poly)
+```
+```{r, echo=TRUE}
+anova(RTTR_advmod_MM_null,RTTR_advmod_MM,RTTR_advmod_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, and the quadratic term is a significant improvement on the linear term.
+R2 for the best-fitting model is .081 marginal & .35 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(RTTR_advmod_MM)$studentid[,1]
+slopes <- coef(RTTR_advmod_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_advmod)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(RTTR_advmod_MM), type="response", grid=TRUE)
+intercept <- summary(RTTR_advmod_MM)$coef[1,1]
+slope <- summary(RTTR_advmod_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(RTTR_advmod_MM)[4,1])+confint(RTTR_advmod_MM)[3,1],(unique(liege_48$time_months)*confint(RTTR_advmod_MM)[4,2])+confint(RTTR_advmod_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_advmod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_advmod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_advmod),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#RTTR_advmod_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_advmod)) + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_advmod), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(RTTR_advmod_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(RTTR_advmod_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_advmod),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_advmod),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_advmod), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for RTTR_advmod (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Mean MI VAC
+
+```{r, echo=FALSE}
+#null model
+meanMIVAC_MM_null <- lmer(formula = meanMIVAC ~ (1|studentid), data = liege_48)
+#linear time
+meanMIVAC_MM <- lmer(formula = meanMIVAC ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(meanMIVAC_MM)
+#time 2
+meanMIVAC_MM_poly <- lmer(formula = meanMIVAC ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(meanMIVAC_MM_poly)
+```
+```{r, echo=TRUE}
+anova(meanMIVAC_MM_null,meanMIVAC_MM,meanMIVAC_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.
+R2 for the best-fitting model is .019 marginal & .258 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(meanMIVAC_MM)$studentid[,1]
+slopes <- coef(meanMIVAC_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIVAC)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(meanMIVAC_MM), type="response", grid=TRUE)
+intercept <- summary(meanMIVAC_MM)$coef[1,1]
+slope <- summary(meanMIVAC_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(meanMIVAC_MM)[4,1])+confint(meanMIVAC_MM)[3,1],(unique(liege_48$time_months)*confint(meanMIVAC_MM)[4,2])+confint(meanMIVAC_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIVAC),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIVAC),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIVAC),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#meanMIVAC_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=meanMIVAC)) + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIVAC), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(meanMIVAC_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(meanMIVAC_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=meanMIVAC),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=meanMIVAC),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=meanMIVAC), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for meanMIVAC (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### RTTR VAC
+
+```{r, echo=FALSE}
+#null model
+RTTR_VAC_MM_null <- lmer(formula = RTTR_VAC ~ (1|studentid), data = liege_48)
+#linear time
+RTTR_VAC_MM <- lmer(formula = RTTR_VAC ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(RTTR_VAC_MM)
+#time 2
+RTTR_VAC_MM_poly <- lmer(formula = RTTR_VAC ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(RTTR_VAC_MM_poly)
+```
+```{r, echo=TRUE}
+anova(RTTR_VAC_MM_null,RTTR_VAC_MM,RTTR_VAC_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.
+R2 for the best-fitting model is .025 marginal & .172 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(RTTR_VAC_MM)$studentid[,1]
+slopes <- coef(RTTR_VAC_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_VAC)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(RTTR_VAC_MM), type="response", grid=TRUE)
+intercept <- summary(RTTR_VAC_MM)$coef[1,1]
+slope <- summary(RTTR_VAC_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(RTTR_VAC_MM)[4,1])+confint(RTTR_VAC_MM)[3,1],(unique(liege_48$time_months)*confint(RTTR_VAC_MM)[4,2])+confint(RTTR_VAC_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_VAC),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_VAC),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_VAC),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#RTTR_VAC_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=RTTR_VAC)) + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_VAC), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(RTTR_VAC_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(RTTR_VAC_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=RTTR_VAC),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=RTTR_VAC),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=RTTR_VAC), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for RTTR_VAC (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Text length
+
+```{r, echo=FALSE}
+#null model
+Word_per_doc_MM_null <- lmer(formula = Word_per_doc ~ (1|studentid), data = liege_48)
+#linear time
+Word_per_doc_MM <- lmer(formula = Word_per_doc ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Word_per_doc_MM)
+#time 2
+Word_per_doc_MM_poly <- lmer(formula = Word_per_doc ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(Word_per_doc_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Word_per_doc_MM_null,Word_per_doc_MM,Word_per_doc_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.
+R2 for the best-fitting model is .269 marginal & .489 conditional (the fixed effects account for more variance than the random effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Word_per_doc_MM)$studentid[,1]
+slopes <- coef(Word_per_doc_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Word_per_doc)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Word_per_doc_MM), type="response", grid=TRUE)
+intercept <- summary(Word_per_doc_MM)$coef[1,1]
+slope <- summary(Word_per_doc_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Word_per_doc_MM)[4,1])+confint(Word_per_doc_MM)[3,1],(unique(liege_48$time_months)*confint(Word_per_doc_MM)[4,2])+confint(Word_per_doc_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Word_per_doc),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Word_per_doc),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Word_per_doc),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Word_per_doc_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Word_per_doc)) + geom_smooth(data=liege_48,aes(x=time_months,y=Word_per_doc), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Word_per_doc_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Word_per_doc_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Word_per_doc),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Word_per_doc),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Word_per_doc), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Word_per_doc (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Lemma frequency logarithm
+
+```{r, echo=FALSE}
+#null model
+Lem_freq_log_MM_null <- lmer(formula = Lem_freq_log ~ (1|studentid), data = liege_48)
+#linear time
+Lem_freq_log_MM <- lmer(formula = Lem_freq_log ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Lem_freq_log_MM)
+#time 2
+Lem_freq_log_MM_poly <- lmer(formula = Lem_freq_log ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(Lem_freq_log_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Lem_freq_log_MM_null,Lem_freq_log_MM,Lem_freq_log_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.
+R2 for the best-fitting model is .147 marginal & .403 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Lem_freq_log_MM)$studentid[,1]
+slopes <- coef(Lem_freq_log_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Lem_freq_log)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Lem_freq_log_MM), type="response", grid=TRUE)
+intercept <- summary(Lem_freq_log_MM)$coef[1,1]
+slope <- summary(Lem_freq_log_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Lem_freq_log_MM)[4,1])+confint(Lem_freq_log_MM)[3,1],(unique(liege_48$time_months)*confint(Lem_freq_log_MM)[4,2])+confint(Lem_freq_log_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Lem_freq_log),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Lem_freq_log),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Lem_freq_log),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Lem_freq_log_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Lem_freq_log)) + geom_smooth(data=liege_48,aes(x=time_months,y=Lem_freq_log), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Lem_freq_log_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Lem_freq_log_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Lem_freq_log),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Lem_freq_log),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Lem_freq_log), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Lem_freq_log (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Sentence length
+
+```{r, echo=FALSE}
+#null model
+Wrd_per_zin_MM_null <- lmer(formula = Wrd_per_zin ~ (1|studentid), data = liege_48)
+#linear time
+Wrd_per_zin_MM <- lmer(formula = Wrd_per_zin ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Wrd_per_zin_MM)
+#time 2
+Wrd_per_zin_MM_poly <- lmer(formula = Wrd_per_zin ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(Wrd_per_zin_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Wrd_per_zin_MM_null,Wrd_per_zin_MM,Wrd_per_zin_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.
+R2 for the best-fitting model is .184 marginal & .450 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Wrd_per_zin_MM)$studentid[,1]
+slopes <- coef(Wrd_per_zin_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Wrd_per_zin)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Wrd_per_zin_MM), type="response", grid=TRUE)
+intercept <- summary(Wrd_per_zin_MM)$coef[1,1]
+slope <- summary(Wrd_per_zin_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Wrd_per_zin_MM)[4,1])+confint(Wrd_per_zin_MM)[3,1],(unique(liege_48$time_months)*confint(Wrd_per_zin_MM)[4,2])+confint(Wrd_per_zin_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Wrd_per_zin),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Wrd_per_zin),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_zin),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Wrd_per_zin_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Wrd_per_zin)) + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_zin), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Wrd_per_zin_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Wrd_per_zin_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Wrd_per_zin),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Wrd_per_zin),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_zin), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Wrd_per_zin (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Clause length
+
+```{r, echo=FALSE}
+#null model
+Wrd_per_dz_MM_null <- lmer(formula = Wrd_per_dz ~ (1|studentid), data = liege_48)
+#linear time
+Wrd_per_dz_MM <- lmer(formula = Wrd_per_dz ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Wrd_per_dz_MM)
+#time 2
+Wrd_per_dz_MM_poly <- lmer(formula = Wrd_per_dz ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(Wrd_per_dz_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Wrd_per_dz_MM_null,Wrd_per_dz_MM,Wrd_per_dz_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.
+R2 for the best-fitting model is .203 marginal & .480 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Wrd_per_dz_MM)$studentid[,1]
+slopes <- coef(Wrd_per_dz_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Wrd_per_dz)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Wrd_per_dz_MM), type="response", grid=TRUE)
+intercept <- summary(Wrd_per_dz_MM)$coef[1,1]
+slope <- summary(Wrd_per_dz_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Wrd_per_dz_MM)[4,1])+confint(Wrd_per_dz_MM)[3,1],(unique(liege_48$time_months)*confint(Wrd_per_dz_MM)[4,2])+confint(Wrd_per_dz_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Wrd_per_dz),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Wrd_per_dz),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_dz),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Wrd_per_dz_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Wrd_per_dz)) + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_dz), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Wrd_per_dz_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Wrd_per_dz_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Wrd_per_dz),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Wrd_per_dz),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_dz), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Wrd_per_dz (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+
+#### Noun phrase length
+
+```{r, echo=FALSE}
+#null model
+Wrd_per_nwg_MM_null <- lmer(formula = Wrd_per_nwg ~ (1|studentid), data = liege_48)
+#linear time
+Wrd_per_nwg_MM <- lmer(formula = Wrd_per_nwg ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Wrd_per_nwg_MM)
+#time 2
+Wrd_per_nwg_MM_poly <- lmer(formula = Wrd_per_nwg ~ (1|studentid) + poly(time_months,2), data = liege_48)
+R2 <- r.squaredGLMM(Wrd_per_nwg_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Wrd_per_nwg_MM_null,Wrd_per_nwg_MM,Wrd_per_nwg_MM_poly) #time
+anova(Wrd_per_nwg_MM_null,Wrd_per_nwg_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is not a significant improvement upon the null model, but the quadratic term is a significant improvement on the linear term. An anova comparing the null model and the quadratic model shows a significant improvement upon the null model
+R2 for the best-fitting model is .176 marginal & .445 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Wrd_per_nwg_MM)$studentid[,1]
+slopes <- coef(Wrd_per_nwg_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Wrd_per_nwg)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Wrd_per_nwg_MM), type="response", grid=TRUE)
+intercept <- summary(Wrd_per_nwg_MM)$coef[1,1]
+slope <- summary(Wrd_per_nwg_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Wrd_per_nwg_MM)[4,1])+confint(Wrd_per_nwg_MM)[3,1],(unique(liege_48$time_months)*confint(Wrd_per_nwg_MM)[4,2])+confint(Wrd_per_nwg_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Wrd_per_nwg),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Wrd_per_nwg),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_nwg),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Wrd_per_nwg_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Wrd_per_nwg)) + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_nwg), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Wrd_per_nwg_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Wrd_per_nwg_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Wrd_per_nwg),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Wrd_per_nwg),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Wrd_per_nwg), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Wrd_per_nwg (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+
+#### Finite dependent clauses per sentence
+
+```{r, echo=FALSE}
+#null model
+Fin_bijzin_per_zin_MM_null <- lmer(formula = Fin_bijzin_per_zin ~ (1|studentid), data = liege_48)
+#linear time
+Fin_bijzin_per_zin_MM <- lmer(formula = Fin_bijzin_per_zin ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Fin_bijzin_per_zin_MM)
+#time 2
+Fin_bijzin_per_zin_MM_poly <- lmer(formula = Fin_bijzin_per_zin ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(Fin_bijzin_per_zin_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Fin_bijzin_per_zin_MM_null,Fin_bijzin_per_zin_MM,Fin_bijzin_per_zin_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.  
+R2 for the best-fitting model is .072 marginal & .196 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Fin_bijzin_per_zin_MM)$studentid[,1]
+slopes <- coef(Fin_bijzin_per_zin_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Fin_bijzin_per_zin)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Fin_bijzin_per_zin_MM), type="response", grid=TRUE)
+intercept <- summary(Fin_bijzin_per_zin_MM)$coef[1,1]
+slope <- summary(Fin_bijzin_per_zin_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Fin_bijzin_per_zin_MM)[4,1])+confint(Fin_bijzin_per_zin_MM)[3,1],(unique(liege_48$time_months)*confint(Fin_bijzin_per_zin_MM)[4,2])+confint(Fin_bijzin_per_zin_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Fin_bijzin_per_zin),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Fin_bijzin_per_zin),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Fin_bijzin_per_zin),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Fin_bijzin_per_zin_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Fin_bijzin_per_zin)) + geom_smooth(data=liege_48,aes(x=time_months,y=Fin_bijzin_per_zin), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Fin_bijzin_per_zin_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Fin_bijzin_per_zin_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Fin_bijzin_per_zin),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Fin_bijzin_per_zin),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Fin_bijzin_per_zin), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Fin_bijzin_per_zin (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+#### Dependent clauses per sentence
+
+```{r, echo=FALSE}
+#null model
+Bijzin_per_zin_MM_null <- lmer(formula = Bijzin_per_zin ~ (1|studentid), data = liege_48)
+#linear time
+Bijzin_per_zin_MM <- lmer(formula = Bijzin_per_zin ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Bijzin_per_zin_MM)
+#time 2
+Bijzin_per_zin_MM_poly <- lmer(formula = Bijzin_per_zin ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(Bijzin_per_zin_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Bijzin_per_zin_MM_null,Bijzin_per_zin_MM,Bijzin_per_zin_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a not significant improvement upon the null model, and the quadratic term is also not a significant improvement on the linear term.  
+R2 for the best-fitting model is .001 marginal & .160 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Bijzin_per_zin_MM)$studentid[,1]
+slopes <- coef(Bijzin_per_zin_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Bijzin_per_zin)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Bijzin_per_zin_MM), type="response", grid=TRUE)
+intercept <- summary(Bijzin_per_zin_MM)$coef[1,1]
+slope <- summary(Bijzin_per_zin_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Bijzin_per_zin_MM)[4,1])+confint(Bijzin_per_zin_MM)[3,1],(unique(liege_48$time_months)*confint(Bijzin_per_zin_MM)[4,2])+confint(Bijzin_per_zin_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Bijzin_per_zin),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Bijzin_per_zin),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Bijzin_per_zin),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Bijzin_per_zin_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Bijzin_per_zin)) + geom_smooth(data=liege_48,aes(x=time_months,y=Bijzin_per_zin), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Bijzin_per_zin_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Bijzin_per_zin_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Bijzin_per_zin),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Bijzin_per_zin),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Bijzin_per_zin), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Bijzin_per_zin (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+
+### Density of passives
+
+```{r, echo=FALSE}
+#null model
+Lijdv_d_MM_null <- lmer(formula = Lijdv_d ~ (1|studentid), data = liege_48)
+#linear time
+Lijdv_d_MM <- lmer(formula = Lijdv_d ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(Lijdv_d_MM)
+#time 2
+Lijdv_d_MM_poly <- lmer(formula = Lijdv_d ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(Lijdv_d_MM_poly)
+```
+```{r, echo=TRUE}
+anova(Lijdv_d_MM_null,Lijdv_d_MM,Lijdv_d_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.  
+R2 for the best-fitting model is .084 marginal & .267 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(Lijdv_d_MM)$studentid[,1]
+slopes <- coef(Lijdv_d_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Lijdv_d)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(Lijdv_d_MM), type="response", grid=TRUE)
+intercept <- summary(Lijdv_d_MM)$coef[1,1]
+slope <- summary(Lijdv_d_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(Lijdv_d_MM)[4,1])+confint(Lijdv_d_MM)[3,1],(unique(liege_48$time_months)*confint(Lijdv_d_MM)[4,2])+confint(Lijdv_d_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Lijdv_d),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Lijdv_d),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Lijdv_d),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#Lijdv_d_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=Lijdv_d)) + geom_smooth(data=liege_48,aes(x=time_months,y=Lijdv_d), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(Lijdv_d_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(Lijdv_d_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=Lijdv_d),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=Lijdv_d),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=Lijdv_d), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for Lijdv_d (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+
+### Dependency distance between verb and object
+
+```{r, echo=FALSE}
+#null model
+AL_ob_ww_MM_null <- lmer(formula = AL_ob_ww ~ (1|studentid), data = liege_48)
+#linear time
+AL_ob_ww_MM <- lmer(formula = AL_ob_ww ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(AL_ob_ww_MM)
+#time 2
+AL_ob_ww_MM_poly <- lmer(formula = AL_ob_ww ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(AL_ob_ww_MM_poly)
+```
+```{r, echo=TRUE}
+anova(AL_ob_ww_MM_null,AL_ob_ww_MM,AL_ob_ww_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is a significant improvement upon the null model, but the quadratic term is not a significant improvement on the linear term.  
+R2 for the best-fitting model is .091 marginal & .199 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(AL_ob_ww_MM)$studentid[,1]
+slopes <- coef(AL_ob_ww_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=AL_ob_ww)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(AL_ob_ww_MM), type="response", grid=TRUE)
+intercept <- summary(AL_ob_ww_MM)$coef[1,1]
+slope <- summary(AL_ob_ww_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(AL_ob_ww_MM)[4,1])+confint(AL_ob_ww_MM)[3,1],(unique(liege_48$time_months)*confint(AL_ob_ww_MM)[4,2])+confint(AL_ob_ww_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=AL_ob_ww),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=AL_ob_ww),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=AL_ob_ww),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#AL_ob_ww_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=AL_ob_ww)) + geom_smooth(data=liege_48,aes(x=time_months,y=AL_ob_ww), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(AL_ob_ww_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(AL_ob_ww_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=AL_ob_ww),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=AL_ob_ww),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=AL_ob_ww), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for AL_ob_ww (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+
+### MTLD lemma
+
+```{r, echo=FALSE}
+#null model
+MTLD_lem_MM_null <- lmer(formula = MTLD_lem ~ (1|studentid), data = liege_48)
+#linear time
+MTLD_lem_MM <- lmer(formula = MTLD_lem ~ (1|studentid) + time_months, data = liege_48)
+R2 <- r.squaredGLMM(MTLD_lem_MM)
+#time 2
+MTLD_lem_MM_poly <- lmer(formula = MTLD_lem ~ (1|studentid) + poly(time_months,2), data = liege_48)
+#R2 <- r.squaredGLMM(MTLD_lem_MM_poly)
+```
+```{r, echo=TRUE}
+anova(MTLD_lem_MM_null,MTLD_lem_MM,MTLD_lem_MM_poly) #time
+R2
+```
+The output of the anova indicates that the linear term for time is not a significant improvement upon the null model, and the quadratic term is also not a significant improvement on the linear term.  
+R2 for the best-fitting model is .002 marginal & .308 conditional (the random effects account for more variance than the fixed effects)  
+```{r, echo=FALSE}
+intercepts <- coef(MTLD_lem_MM)$studentid[,1]
+slopes <- coef(MTLD_lem_MM)$studentid[,2]
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=MTLD_lem)) + geom_abline(intercept = intercepts, slope = slopes)
+#plot(effects::allEffects(MTLD_lem_MM), type="response", grid=TRUE)
+intercept <- summary(MTLD_lem_MM)$coef[1,1]
+slope <- summary(MTLD_lem_MM)$coef[2,1]
+CIsDF <- data.frame(unique(liege_48$time_months),(unique(liege_48$time_months)*slope)+intercept,(unique(liege_48$time_months)*confint(MTLD_lem_MM)[4,1])+confint(MTLD_lem_MM)[3,1],(unique(liege_48$time_months)*confint(MTLD_lem_MM)[4,2])+confint(MTLD_lem_MM)[3,2])
+colnames(CIsDF) <- c("time_months","value","CIlow","CIhigh")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=MTLD_lem),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=MTLD_lem),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=MTLD_lem),method="lm",se=F,color="red") + geom_ribbon(data = CIsDF, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```
+```{r, echo=FALSE}
+#MTLD_lem_poly
+#ggplot() + geom_jitter(data = liege_48, aes(x=time_months, y=MTLD_lem)) + geom_smooth(data=liege_48,aes(x=time_months,y=MTLD_lem), method="lm",formula = y~poly(x,2))
+#plot(effects::allEffects(MTLD_lem_MM_poly), type="response", grid=TRUE)
+poly_df <- as.data.frame(sjPlot::get_model_data(MTLD_lem_MM_poly, type = "pred",pred.type = "fe"))
+colnames(poly_df) <- c("time_months","value","SE","CIlow","CIhigh","x","xx")
+ggplot() + geom_point(data = liege_48, aes(x=time_months, y=MTLD_lem),alpha=.4) + geom_smooth(data = liege_48, aes(x=time_months, y=MTLD_lem),fill="blue") + geom_smooth(data=liege_48,aes(x=time_months,y=MTLD_lem), method="lm",formula = y~poly(x,2), se=F,color="red") + geom_ribbon(data = poly_df, aes(x=time_months, y=value,ymin = CIlow, ymax = CIhigh),alpha=.2,fill="red")
+```  
+
+The plots show the observed values for MTLD_lem (points) across the time variable, a smooth line (lm) for the ovserved values (blue), and a smooth line (lm) for the fitted regression (red)  
+The top plot is for the regression line with a single linear term  
+The lower plot is for the quadratic regression line
+
+### Correlations between complexity measures and scores
+
+The heatmap below shows the Pearson correlations between all complexity measures and the numeric score assigned to each text for each of the five time points for which we have scores for the learner text, in addition to averages across all time points.
+
+```{r, echo=FALSE}
+#correlations
+liege_cor <- na.omit(liege_48[,c(28:65)])
+liege_cor1 <- na.omit(liege_48[liege_48$time==1,c(28:65)])
+liege_cor2 <- na.omit(liege_48[liege_48$time==2,c(28:65)])
+liege_cor3 <- na.omit(liege_48[liege_48$time==3,c(28:65)])
+liege_cor4 <- na.omit(liege_48[liege_48$time==4,c(28:65)])
+liege_cor5 <- na.omit(liege_48[liege_48$time==5,c(28:65)])
+liege_cor6 <- na.omit(liege_48[liege_48$time==6,c(28:65)])
+liege_cor7 <- na.omit(liege_48[liege_48$time==7,c(28:65)])
+liege_cors <- cor(liege_cor, method = "pearson")
+liege_cors1 <- cor(liege_cor1, method = "pearson")
+liege_cors2 <- cor(liege_cor2, method = "pearson")
+liege_cors3 <- cor(liege_cor3, method = "pearson")
+liege_cors4 <- cor(liege_cor4, method = "pearson")
+liege_cors5 <- cor(liege_cor5, method = "pearson")
+liege_cors6 <- cor(liege_cor6, method = "pearson")
+liege_cors7 <- cor(liege_cor7, method = "pearson")
+score_cors <- data.frame(liege_cors1[,1],liege_cors2[,1],liege_cors3[,1],liege_cors6[,1],liege_cors7[,1])
+score_cors$avg <- apply(score_cors,1,function(x){
+  mean(x[[1]] + x[[2]] + x[[3]] + x[[4]] + x[[5]])
+})
+score_cors$avg2 <- score_cors$avg/5
+
+#correlations w/ score heatmap
+scores <- c(rep("score1",38),rep("score2",38),rep("score3",38),rep("score6",38),rep("score7",38),rep("score_avg",38))
+measures <- rep(colnames(liege_48[liege_48$time==7,c(28:65)]),6)
+heatmapdf <- data.frame(measures,scores)
+heatmapdf$cors <- c(score_cors$liege_cors1...1.,score_cors$liege_cors2...1.,score_cors$liege_cors3...1.,score_cors$liege_cors6...1.,score_cors$liege_cors7...1.,score_cors$avg2)
+heatmapdf$measures <- factor(heatmapdf$measures, levels=(heatmapdf$measures)[order(c(1:38))])
+ggplot(data = heatmapdf, aes(x=scores,y=measures,fill=cors)) + geom_tile()
+```
+
+The correlations vary quite a bit across the five time points, although it generally seems that the strong correlation between phraseological measures (particularly the verb-argument structure measures) and the numeric scores is somewhat stable across the time points.
+
+### Mixed-effects model predicting numeric score with complexity measures
+
+The numeric scores across the five time points for which the scores were recorded were modeled as a function of 17 complexity measures that demonstrated the strongest correlation with the outcome variable (and all phraseological measures were included) with random effects for speaker:  
+  
+Mean MI dobj  
+RTTR dobj  
+Mean MI amod  
+RTTR amod  
+Mean MI advmod  
+RTTR advmod  
+Mean MI verb-argument structure  
+RTTR verb-argument structure  
+Text length  
+Morphemes per word  
+Lemme frequency logarithm  
+Sentence length  
+Clause length  
+Subclauses per sentence  
+Density of passives  
+Dependency distance between object and verb  
+MTLD lemma  
+  
+Below is the output of the mixed-effects regression and effects plots for each predictor. Model selection indicated that removing any of the predictors did not improve the model.
+
+```{r, echo=FALSE}
+#regression model for scores
+#null model
+scores_MM_null <- lmer(formula = score ~ (1|studentid), data = liege_48)
+#full model
+liege_48_std <- sapply(liege_48[,colnames(liege_48)[c(28:65)], drop = FALSE], scale)
+liege_48_std <- as.data.frame(cbind(liege_48$studentid,liege_48_std))
+colnames(liege_48_std) <- c("studentid",colnames(liege_48_std)[-1])
+summary(scores_MM <- lmer(formula = score ~ meanMIdobj + RTTR_dobj + meanMIamod + RTTR_amod + meanMIadvmod + RTTR_advmod + meanMIVAC + RTTR_VAC + Word_per_doc + Morf_per_wrd + Lem_freq_log + Wrd_per_zin + Wrd_per_dz + Bijzin_per_zin + Lijdv_d + AL_ob_ww + MTLD_lem + (1|studentid), data = liege_48_std))
+r.squaredGLMM(scores_MM)
+plot_model(scores_MM, type="pred")
+```
+
+On the basis of the effects plots, the strongest predictors in the model appear to be:  
+MTLD lemma  
+Sentence length  
+Morphemes per word  
+Text length  
+RTTR verb-argument structure  
+Mean MI verb-argument structure  
+RTTR advmod  
+Mean MI advmod  
+RTTR amod  
+Mean MI amod  
+RTTR dobj  
+Mean MI dobj  
+  
+Interestingly, for the phraseological measures it seems that the diversity measures demonstrate a negative correlation with scores (with the exception of RTTR advmod) while the sophistication measures demonstrate a positive correlation.
